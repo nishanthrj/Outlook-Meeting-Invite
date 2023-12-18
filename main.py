@@ -61,6 +61,8 @@ def create_event(access_token, data):
         "allowNewTimeProposals": False,
         "hideAttendees": True,
         "reminderMinutesBeforeStart": 30,
+        "isOnlineMeeting": True,
+        "onlineMeetingProvider": "teamsForBusiness",
     }
 
     if data["Occurrence"] == "week":
