@@ -6,24 +6,25 @@ from decouple import config
 
 CSV_FILE = "meeting.csv"
 
-client_id: str = config("CLIENT_ID")
-client_secret: str = config("CLIENT_SECRET")
-tenant_id: str = config("TENANT_ID")
-email_id = config("EMAIL")
+CLIENT_ID = config("CLIENT_ID")
+CLIENT_SECRET = config("CLIENT_SECRET")
+TENANT_ID = config("TENANT_ID")
+EMAIL_ID = config("EMAIL")
 
-access_token_url = f"https://login.microsoftonline.com/{tenant_id}/oauth2/v2.0/token"
-graph_api_endpoint = f"https://graph.microsoft.com/v1.0/users/{email_id}/events"
+TOKEN_URL = f"https://login.microsoftonline.com/{TENANT_ID}/oauth2/v2.0/token"
+EVENT_ENDPOINT = f"https://graph.microsoft.com/v1.0/users/{EMAIL_ID}/events"
+EMAIL_ENDPOINT = f"https://graph.microsoft.com/v1.0/users/{EMAIL_ID}/sendMail"
 
 
 def get_access_token():
     token_payload = {
         "grant_type": "client_credentials",
-        "client_id": client_id,
-        "client_secret": client_secret,
+        "client_id": CLIENT_ID,
+        "client_secret": CLIENT_SECRET,
         "scope": "https://graph.microsoft.com/.default",
     }
 
-    response = requests.post(access_token_url, data=token_payload)
+    response = requests.post(TOKEN_URL, data=token_payload)
     access_token = response.json().get("access_token")
     return access_token
 
@@ -49,15 +50,18 @@ def create_event(access_token, data):
             "dateTime": data["EndTime"],
             "timeZone": "UTC",
         },
-        "attendees": [
-            {
-                "emailAddress": {
-                    "address": data["To"],
-                    "name": data["Name"],
-                },
-                "type": "Required",
-            }
-        ],
+        "recurrence": {
+            "pattern": {"type": "daily", "interval": 1},
+            "range": {
+                "type": "endDate",
+                "startDate": data["StartTime"][:10],
+                "endDate": (
+                    datetime.strptime(data["EndTime"][:10], "%Y-%m-%d")
+                    + timedelta(days=7)
+                ).strftime("%Y-%m-%d"),
+            },
+        },
+        "attendees": [],
         "allowNewTimeProposals": False,
         "hideAttendees": True,
         "reminderMinutesBeforeStart": 30,
@@ -65,55 +69,149 @@ def create_event(access_token, data):
         "onlineMeetingProvider": "teamsForBusiness",
     }
 
-    if data["Occurrence"] == "week":
-        event_payload["recurrence"] = (
-            {
-                "pattern": {
-                    "type": "daily",
-                },
-                "range": {
-                    "type": "endDate",
-                    "startDate": data["StartTime"],
-                    "endDate": data["EndTime"],
-                },
+    event_payload["attendees"] += [
+        {
+            "emailAddress": {
+                "address": email,
+                "name": name,
             },
-        )
+            "type": "required",
+        }
+        for email, name in data["To"]
+    ]
+
+    event_payload["attendees"] += [
+        {
+            "emailAddress": {
+                "address": email,
+                "name": name,
+            },
+            "type": "optional",
+        }
+        for email, name in data["CC"]
+    ]
+
+    if data["Occurrence"] != "week":
+        event_payload.pop("recurrence")
 
     response = requests.post(
-        graph_api_endpoint, headers=headers, data=json.dumps(event_payload)
+        EVENT_ENDPOINT, headers=headers, data=json.dumps(event_payload)
     )
+
     return response.json()
+
+
+def send_invites(access_token):
+    with open(CSV_FILE, "r") as csvfile:
+        reader = csv.DictReader(csvfile)
+        groups = {}
+        for row in reader:
+            if row["Date"] in groups:
+                groups[row["Date"]]["To"].append((row["To"], row["Name"]))
+                groups[row["Date"]]["CC"].append((row["CCEmail"], row["CCName"]))
+
+            else:
+                groups[row["Date"]] = {
+                    "To": [(row["To"], row["Name"])],
+                    "CC": [(row["CCEmail"], row["CCName"])],
+                    "Subject": row["Subject"],
+                    "Body": row["Body"],
+                    "Occurrence": row["Occurrence"],
+                    "StartTime": row["Date"],
+                    "EndTime": (
+                        datetime.strptime(row["Date"], "%Y-%m-%dT%H:%M:%S")
+                        + timedelta(minutes=int(row["Duration"]))
+                    ).strftime("%Y-%m-%dT%H:%M:%S"),
+                }
+
+        for data in groups.values():
+            response = create_event(access_token, data)
+            error = response.get("error")
+            if error:
+                print(
+                    f"Failed: Couldn't invite attendees for {data['Subject']}\n{error.get('message')}"
+                )
+            else:
+                print(f"Success: Invited attendees for {data['Subject']}")
+
+
+def send_feedback_email(access_token, to, cc, subject):
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "Content-Type": "application/json",
+    }
+
+    email_payload = {
+        "message": {
+            "subject": f"Feedback Request for {subject}",
+            "body": {
+                "contentType": "Text",
+                "content": f"We would appreciate your feedback on the {subject}. Thank you!",
+            },
+            "toRecipients": [
+                {
+                    "emailAddress": {
+                        "address": email,
+                        "name": name,
+                    }
+                }
+                for name, email in to
+            ],
+            "ccRecipients": [
+                {
+                    "emailAddress": {
+                        "address": email,
+                        "name": name,
+                    }
+                }
+                for name, email in cc
+            ],
+        },
+        "saveToSentItems": "true",
+    }
+
+    response = requests.post(EMAIL_ENDPOINT, headers=headers, json=email_payload)
+    return response
+
+
+def ask_feedback(access_token):
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "Content-Type": "application/json",
+    }
+
+    res = requests.get(EVENT_ENDPOINT + "?$select=subject,attendees", headers=headers)
+
+    data = res.json()
+
+    for event in data["value"]:
+        subject = event["subject"]
+        if "review" not in subject.lower():
+            continue
+        to = []
+        cc = []
+        for attendee in event["attendees"]:
+            name = attendee["emailAddress"]["name"]
+            email = attendee["emailAddress"]["address"]
+            if attendee["type"] == "required":
+                to.append((name, email))
+            elif attendee["type"] == "optional":
+                cc.append((name, email))
+        res = send_feedback_email(access_token, to, cc, subject)
+        if res.status_code == 202:
+            print(f"Success: Feedback request email sent successfully for {subject}")
+        else:
+            print(
+                f"Failed: Couldn't send feedback request email for {subject}\nStatus code: {res.status_code}"
+            )
 
 
 def main():
     access_token = get_access_token()
 
     if access_token:
-        with open(CSV_FILE, "r") as csvfile:
-            reader = csv.DictReader(csvfile)
-            for row in reader:
-                data = {
-                    "To": row["To"],
-                    "Name": row["Name"],
-                    "Subject": row["Subject"],
-                    "Body": row["Body"],
-                    "Occurrence": row["Occurrence"],
-                }
-
-                try:
-                    start_time = datetime.strptime(row["Date"], "%Y-%m-%dT%H:%M:%S")
-                    duration = int(row["Duration"])
-                    end_time = start_time + timedelta(
-                        days=7 if row["Occurrence"] == "week" else 0, minutes=duration
-                    )
-                    data["StartTime"] = start_time.strftime("%Y-%m-%dT%H:%M:%S")
-                    data["EndTime"] = end_time.strftime("%Y-%m-%dT%H:%M:%S")
-                    response = create_event(access_token, data)
-                    print(response)
-                except KeyError as e:
-                    print(f"Missing data for meeting '{data['Subject']}': {e}")
-
-        print("Meeting invites sent successfully!")
+        send_invites(access_token)
+        # ask_feedback(access_token)
     else:
         print("Failed to obtain access token.")
 
