@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 from decouple import config
 
 # The main file with all meeting information.
-CSV_FILE = "meeting.csv"
+CSV_FILE = "meetings.csv"
 
 # API authentication details.
 CLIENT_ID = config("CLIENT_ID")
