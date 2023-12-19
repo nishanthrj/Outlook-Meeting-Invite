@@ -1,2 +1,11 @@
-To,Name,Subject,Date,Duration,Occurrence,Body
-AlexW@61lpk6.onmicrosoft.com,Alex Wilber,Feedback Needed - New Design Proposal,2023-12-25T14:00:00,120,once,Just a quick reminder about the upcoming meeting...
+To,Name,Subject,Date,Duration,Occurrence,Body,CCEmail,CCName
+john.doe@example.com,John Doe,Project Update Meeting,2023-12-25T14:30:00,60,once,Please join us for the project update meeting. Your insights are valuable.,cc.jane@example.com,Jane CC
+jane.smith@example.com,Jane Smith,Quarterly Review - Q4,2023-12-26T10:00:00,90,once,Review and discuss the achievements and challenges of the fourth quarter.,cc.bob@example.com,Bob CC
+bob.jones@example.com,Bob Jones,Team Building Activity Review,2023-12-27T15:30:00,120,once,Get ready for some fun team-building exercises this Wednesday afternoon!,cc.sara@example.com,Sara CC
+sara.jenkins@example.com,Sara Jenkins,Weekly Status Call,2023-12-28T09:00:00,60,week,Let's catch up on the weekly status. Be prepared to discuss your current tasks and roadblocks.,cc.alex@example.com,Alex CC
+alex.wang@example.com,Alex Wang,Feedback Session - Marketing Strategy,2023-12-29T14:00:00,90,once,Provide your feedback on the proposed marketing strategy during this important session.,cc.john@example.com,John CC
+john.doe@example.com,John Doe,Project Update Meeting,2023-12-25T14:30:00,60,once,Please join us for the project update meeting. Your insights are valuable.,cc.mary@example.com,Mary CC
+mary.james@example.com,Mary James,Client Presentation,2023-12-30T11:00:00,120,once,Prepare for the client presentation scheduled for the end of the week.,cc.jane@example.com,Jane CC
+jane.smith@example.com,Jane Smith,Quarterly Review - Q4,2023-12-26T10:00:00,90,once,Review and discuss the achievements and challenges of the fourth quarter.,cc.sara@example.com,Sara CC
+sara.jenkins@example.com,Sara Jenkins,Weekly Status Call,2023-12-28T09:00:00,60,week,Let's catch up on the weekly status. Be prepared to discuss your current tasks and roadblocks.,cc.alex@example.com,Alex CC
+alex.wang@example.com,Alex Wang,Feedback Session - Marketing Strategy,2023-12-29T14:00:00,90,once,Provide your feedback on the proposed marketing strategy during this important session.,cc.john@example.com,John CC
