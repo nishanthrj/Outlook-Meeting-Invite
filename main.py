@@ -74,15 +74,18 @@ def get_recurrence_pattern(occurrence: str, start_date: str) -> dict | None:
         return {
             "type": "weekly",
             "interval": 1,
-            "daysOfWeek": ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
+            "daysOfWeek": ["monday", "tuesday", "wednesday", "thursday", "friday"],
         }
     elif occurrence == "weekly":
         return {
             "type": "weekly",
             "interval": 1,
-            "daysOfWeek": [datetime.strptime(start_date, "%Y-%m-%d").strftime('%A').lower()],
+            "daysOfWeek": [
+                datetime.strptime(start_date, "%Y-%m-%d").strftime("%A").lower()
+            ],
         }
-    else: return None
+    else:
+        return None
 
 
 def create_event_payload(data: dict) -> dict:
@@ -99,8 +102,14 @@ def create_event_payload(data: dict) -> dict:
     payload = {
         "subject": data["Subject"],
         "body": {"contentType": "HTML", "content": data["Body"]},
-        "start": {"dateTime": f"{data["StartDate"]}T{data["StartTime"]}", "timeZone": "Asia/Kolkata"},
-        "end": {"dateTime": f"{data["StartDate"]}T{data["EndTime"]}", "timeZone": "Asia/Kolkata"},
+        "start": {
+            "dateTime": f"{data['StartDate']}T{data['StartTime']}",
+            "timeZone": "Asia/Kolkata",
+        },
+        "end": {
+            "dateTime": f"{data['StartDate']}T{data['EndTime']}",
+            "timeZone": "Asia/Kolkata",
+        },
         "recurrence": {
             "pattern": get_recurrence_pattern(data["Occurrence"], data["StartDate"]),
             "range": {
@@ -163,7 +172,9 @@ def send_event_invites() -> None:
         reader = csv.DictReader(csvfile)
 
         for row in reader:
-            group_id = generate_group_id(row["StartDate"] + row["StartTime"] + row["EndDate"] + row["EndTime"])
+            group_id = generate_group_id(
+                row["StartDate"] + row["StartTime"] + row["EndDate"] + row["EndTime"]
+            )
             if group_id in groups:
                 groups[group_id]["To"].append((row["To"], row["Name"]))
                 groups[group_id]["CC"].append((row["CCEmail"], row["CCName"]))
