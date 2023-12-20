@@ -1,3 +1,4 @@
+import hashlib
 import json
 import csv
 import time
@@ -41,6 +42,49 @@ def set_access_token():
     ACCESS_TOKEN = response.json().get("access_token")
 
 
+def generate_group_id(input_string: str) -> str:
+    """
+    Generate a unique group ID.
+
+    Args:
+        input_string (str): The input string to be hashed.
+
+    Returns:
+        str: The hashed string (group ID).
+    """
+    sha256_hash = hashlib.sha256()
+    sha256_hash.update(input_string.encode("utf-8"))
+    hashed_string = sha256_hash.hexdigest()
+
+    return hashed_string
+
+
+def get_recurrence_pattern(occurrence: str, start_date: str) -> dict | None:
+    """
+    Get a recurrence pattern based on the occurrence.
+
+    Parameters:
+        occurrence (str): The recurrence type, e.g., "daily" or "weekly".
+        start_date (str): The start date for the meeting.
+
+    Returns:
+        dict : The recurrence pattern.
+    """
+    if occurrence == "daily":
+        return {
+            "type": "weekly",
+            "interval": 1,
+            "daysOfWeek": ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
+        }
+    elif occurrence == "weekly":
+        return {
+            "type": "weekly",
+            "interval": 1,
+            "daysOfWeek": [datetime.strptime(start_date, "%Y-%m-%d").strftime('%A').lower()],
+        }
+    else: return None
+
+
 def create_event_payload(data: dict) -> dict:
     """
     Create payload for creating an Outlook event.
@@ -52,28 +96,20 @@ def create_event_payload(data: dict) -> dict:
         dict: Payload for creating an event.
     """
 
-    start_time = data["StartTime"]
-    end_time = (
-        datetime.strptime(start_time, "%Y-%m-%dT%H:%M:%S")
-        + timedelta(minutes=int(data["Duration"]))
-    ).strftime("%Y-%m-%dT%H:%M:%S")
-
     payload = {
         "subject": data["Subject"],
         "body": {"contentType": "HTML", "content": data["Body"]},
-        "start": {"dateTime": start_time, "timeZone": "UTC"},
-        "end": {"dateTime": end_time, "timeZone": "UTC"},
+        "start": {"dateTime": f"{data["StartDate"]}T{data["StartTime"]}", "timeZone": "Asia/Kolkata"},
+        "end": {"dateTime": f"{data["StartDate"]}T{data["EndTime"]}", "timeZone": "Asia/Kolkata"},
         "recurrence": {
-            "pattern": {"type": "daily", "interval": 1},
+            "pattern": get_recurrence_pattern(data["Occurrence"], data["StartDate"]),
             "range": {
                 "type": "endDate",
-                "startDate": start_time[:10],
-                "endDate": (
-                    datetime.strptime(start_time[:10], "%Y-%m-%d") + timedelta(days=7)
-                ).strftime("%Y-%m-%d"),
+                "startDate": data["StartDate"],
+                "endDate": data["EndDate"],
             },
         }
-        if data["Occurrence"] == "week"
+        if data["Occurrence"] != "once"
         else None,
         "attendees": [
             {"emailAddress": {"address": email, "name": name}, "type": "required"}
@@ -127,19 +163,21 @@ def send_event_invites() -> None:
         reader = csv.DictReader(csvfile)
 
         for row in reader:
-            date = row["Date"]
-            if date in groups:
-                groups[date]["To"].append((row["To"], row["Name"]))
-                groups[date]["CC"].append((row["CCEmail"], row["CCName"]))
+            group_id = generate_group_id(row["StartDate"] + row["StartTime"] + row["EndDate"] + row["EndTime"])
+            if group_id in groups:
+                groups[group_id]["To"].append((row["To"], row["Name"]))
+                groups[group_id]["CC"].append((row["CCEmail"], row["CCName"]))
             else:
-                groups[date] = {
+                groups[group_id] = {
                     "To": [(row["To"], row["Name"])],
                     "CC": [(row["CCEmail"], row["CCName"])],
                     "Subject": row["Subject"],
                     "Body": row["Body"],
                     "Occurrence": row["Occurrence"],
-                    "StartTime": date,
-                    "Duration": row["Duration"],
+                    "StartDate": row["StartDate"],
+                    "EndDate": row["EndDate"],
+                    "StartTime": row["StartTime"],
+                    "EndTime": row["EndTime"],
                 }
 
     for data in groups.values():
