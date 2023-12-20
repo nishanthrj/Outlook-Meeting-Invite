@@ -1,6 +1,4 @@
 venv/
 .env
 *.zip
-build/
-dist/
-*.spec
+temp/
