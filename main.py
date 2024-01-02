@@ -3,7 +3,7 @@ import json
 import csv
 import time
 import requests
-from datetime import datetime, timedelta
+from datetime import datetime
 from decouple import config
 
 # The main file with all meeting information.
@@ -13,12 +13,12 @@ CSV_FILE = "meetings.csv"
 CLIENT_ID = config("CLIENT_ID")
 CLIENT_SECRET = config("CLIENT_SECRET")
 TENANT_ID = config("TENANT_ID")
-EMAIL_ID = config("EMAIL")
+OBJECT_ID = config("OBJECT_ID")
 
 # API endpoints.
 TOKEN_ENDPOINT = f"https://login.microsoftonline.com/{TENANT_ID}/oauth2/v2.0/token"
-EVENT_ENDPOINT = f"https://graph.microsoft.com/v1.0/users/{EMAIL_ID}/events"
-EMAIL_ENDPOINT = f"https://graph.microsoft.com/v1.0/users/{EMAIL_ID}/sendMail"
+EVENT_ENDPOINT = f"https://graph.microsoft.com/v1.0/users/{OBJECT_ID}/events"
+EMAIL_ENDPOINT = f"https://graph.microsoft.com/v1.0/users/{OBJECT_ID}/sendMail"
 
 # The token required to make API calls.
 ACCESS_TOKEN = None
