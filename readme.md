@@ -4,7 +4,7 @@ This guide will walk you through the setup and execution of this script to creat
 
 ## Prerequisites
 
-Before running the script, make sure you have the following prerequisites installed:
+Before running the script, make sure you have the following prerequisites:
 
 1. [Python](https://www.python.org/) (version 3.10 or higher)
 2. [Microsoft 365 Subscription](https://www.microsoft.com/en-us/microsoft-365)
@@ -47,7 +47,7 @@ Before running the script, make sure you have the following prerequisites instal
 6. Once registered, copy the "Application (client) ID" and "Directory (tenant) ID" from the overview page. Keep this information somewhere.
 7. Navigate to "Certificates & Secrets."
 8. Click on "New client secret," provide a description, set an expiry, and create the secret.
-9. Copy the generated secret and store it too. (NOTE: You must copy the value right away since you cannot see it later. If you lose this value, delete this secret and create a new one.)
+9. Copy the generated secret and store it too. (NOTE: You must copy the value right away since you cannot see it later. If you lose this value, delete this secret and create a new one)
 10. In "API permissions," click on "Add a permission" > "Microsoft Graph" > "Application permissions."
 11. Search for "Calendars.ReadWrite" and "Mail.Send." Check the respective boxes for these permissions and click "Add permissions."
 12. Remove the default "User.Read" permission by clicking the three dots (...) in the end and selecting "Remove permission."
