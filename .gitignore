@@ -2,3 +2,4 @@ venv/
 .env
 *.zip
 temp/
+__pycache__/
