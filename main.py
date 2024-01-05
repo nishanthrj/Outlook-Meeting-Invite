@@ -1,10 +1,9 @@
-import hashlib
 import json
 import csv
 import time
 import requests
-from datetime import datetime
 from decouple import config
+from utils import generate_group_id, get_recurrence_pattern, format_date
 
 # The main file with all meeting information.
 CSV_FILE = "meetings.csv"
@@ -40,52 +39,6 @@ def set_access_token():
 
     response = requests.post(TOKEN_ENDPOINT, data=token_payload)
     ACCESS_TOKEN = response.json().get("access_token")
-
-
-def generate_group_id(input_string: str) -> str:
-    """
-    Generate a unique group ID.
-
-    Args:
-        input_string (str): The input string to be hashed.
-
-    Returns:
-        str: The hashed string (group ID).
-    """
-    sha256_hash = hashlib.sha256()
-    sha256_hash.update(input_string.encode("utf-8"))
-    hashed_string = sha256_hash.hexdigest()
-
-    return hashed_string
-
-
-def get_recurrence_pattern(occurrence: str, start_date: str) -> dict | None:
-    """
-    Get a recurrence pattern based on the occurrence.
-
-    Parameters:
-        occurrence (str): The recurrence type, e.g., "daily" or "weekly".
-        start_date (str): The start date for the meeting.
-
-    Returns:
-        dict : The recurrence pattern.
-    """
-    if occurrence == "daily":
-        return {
-            "type": "weekly",
-            "interval": 1,
-            "daysOfWeek": ["monday", "tuesday", "wednesday", "thursday", "friday"],
-        }
-    elif occurrence == "weekly":
-        return {
-            "type": "weekly",
-            "interval": 1,
-            "daysOfWeek": [
-                datetime.strptime(start_date, "%Y-%m-%d").strftime("%A").lower()
-            ],
-        }
-    else:
-        return None
 
 
 def create_event_payload(data: dict) -> dict:
@@ -185,8 +138,8 @@ def send_event_invites() -> None:
                     "Subject": row["Subject"],
                     "Body": row["Body"],
                     "Occurrence": row["Occurrence"],
-                    "StartDate": row["StartDate"],
-                    "EndDate": row["EndDate"],
+                    "StartDate": format_date(row["StartDate"]),
+                    "EndDate": format_date(row["EndDate"]),
                     "StartTime": row["StartTime"],
                     "EndTime": row["EndTime"],
                 }
