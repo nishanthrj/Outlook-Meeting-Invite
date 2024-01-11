@@ -3,7 +3,12 @@ import csv
 import time
 import requests
 from decouple import config
-from utils import generate_group_id, get_recurrence_pattern, format_date
+from utils import (
+    generate_group_id,
+    get_recurrence_pattern,
+    format_date,
+    format_meeting_body,
+)
 
 # The main file with all meeting information.
 CSV_FILE = "meetings.csv"
@@ -54,14 +59,17 @@ def create_event_payload(data: dict) -> dict:
 
     payload = {
         "subject": data["Subject"],
-        "body": {"contentType": "HTML", "content": data["Body"]},
+        "body": {
+            "contentType": "HTML",
+            "content": format_meeting_body(data["Body"], data["MeetingURL"]),
+        },
         "start": {
             "dateTime": f"{data['StartDate']}T{data['StartTime']}",
-            "timeZone": "Asia/Kolkata",
+            "timeZone": data["TimeZone"],
         },
         "end": {
             "dateTime": f"{data['StartDate']}T{data['EndTime']}",
-            "timeZone": "Asia/Kolkata",
+            "timeZone": data["TimeZone"],
         },
         "recurrence": {
             "pattern": get_recurrence_pattern(data["Occurrence"], data["StartDate"]),
@@ -84,8 +92,10 @@ def create_event_payload(data: dict) -> dict:
         "allowNewTimeProposals": False,
         "hideAttendees": True,
         "reminderMinutesBeforeStart": 30,
-        "isOnlineMeeting": True,
-        "onlineMeetingProvider": "teamsForBusiness",
+        "isOnlineMeeting": True if data["Platform"] == "Teams" else False,
+        "onlineMeetingProvider": "teamsForBusiness"
+        if data["Platform"] == "Teams"
+        else "unknown",
     }
 
     return payload
@@ -142,6 +152,9 @@ def send_event_invites() -> None:
                     "EndDate": format_date(row["EndDate"]),
                     "StartTime": row["StartTime"],
                     "EndTime": row["EndTime"],
+                    "TimeZone": row["TimeZone"],
+                    "Platform": row["Platform"],
+                    "MeetingURL": row["MeetingURL"],
                 }
 
     for data in groups.values():

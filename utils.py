@@ -62,3 +62,9 @@ def format_date(date: str) -> str:
     parsed_date = parser.parse(date)
     output_date = parsed_date.strftime("%Y-%m-%d")
     return output_date
+
+
+def format_meeting_body(body, url=None):
+    if url:
+        return f"{body}<br><hr><br><h3>Webex Meeting</h3><a href={url}>Click here to join the meeting</a>"
+    return body
