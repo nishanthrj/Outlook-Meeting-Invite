@@ -223,7 +223,7 @@ def send_feedback_email(to: list, cc: list, subject: str) -> requests.Response:
 
 def ask_feedback() -> None:
     """
-    Retrieve events with 'review' in the subject and send feedback emails.
+    Retrieve events with 'feedback' in the subject and send feedback emails.
     """
 
     headers = {
@@ -236,7 +236,7 @@ def ask_feedback() -> None:
 
     for event in data["value"]:
         subject = event["subject"]
-        if "review" not in subject.lower():
+        if "feedback" not in subject.lower():
             continue
 
         to = []
